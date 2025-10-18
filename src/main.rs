@@ -1,9 +1,23 @@
-use std::path::Path;
+use std::path::PathBuf;
 use std::fs;
 use std::error::Error;
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(author = "AndariiDev", version = "0.1.2", about = "A dependency checker", long_about = None)] // strings must be quoted
+struct Args {
+    // triple slashes are doc comments
+    /// The root directory of the project to scan
+    #[arg(short, long)]
+    path: String,
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let project_root = Path::new("../my_c_project");
+    let args = Args::parse();
+    
+    // let project_root = Path::new("../my_c_project");
+    let project_root: PathBuf = PathBuf::from(&args.path);
+    
     let test_repo_path = project_root.join("dependencies.txt");
     
     if !test_repo_path.exists() {
