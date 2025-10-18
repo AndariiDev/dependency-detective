@@ -1,14 +1,15 @@
 use std::path::Path;
 use std::fs;
+use std::error::Error;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let project_root = Path::new("../my_c_project");
     let test_repo_path = project_root.join("../my_c_project/dependencies.txt");
     
     if test_repo_path.exists() {
         println!("This file exists!");
         
-        let content = fs::read_to_string(test_repo_path).unwrap();
+        let content = fs::read_to_string(test_repo_path)?;
         
         let lines: Vec<&str> = content.lines().collect();
 
@@ -22,12 +23,16 @@ fn main() {
                 
             } else {
 
-                println!("Mssing (ENOENT)");
+                println!("Mssing (ENOENT): {:#?}", full_path);
             }
             
         }
+
+        Ok(())
     
     } else {
         println!("This file doesn't exist!");
+
+        Ok(())
     }
 }
