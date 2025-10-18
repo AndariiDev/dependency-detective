@@ -6,7 +6,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let project_root = Path::new("../my_c_project");
     let test_repo_path = project_root.join("../my_c_project/dependencies.txt");
     
-    if test_repo_path.exists() {
+    if !test_repo_path.exists() {
+        println!("This file doesn't exist!");
+
+        } else {
         println!("This file exists!");
         
         let content = fs::read_to_string(test_repo_path)?;
@@ -28,11 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             
         }
 
-        Ok(())
-    
-    } else {
-        println!("This file doesn't exist!");
-
-        Ok(())
     }
+
+    Ok(())
 }
