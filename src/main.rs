@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::fs;
 use std::error::Error;
+use std::env;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -9,23 +10,36 @@ struct Args {
     // triple slashes are doc comments
     /// The root directory of the project to scan
     #[arg(short, long)]
-    path: String,
+    path: Option<String>,
 
-    /// The name of the file containing the dependencies
-    #[arg(short = 'f', long = "dependency-file", default_value_t = String::from("main.c"))] // provide default
-    dependency_file: String,
+    /// The name of the file containing the dependencies (#include statements in C, etc)
+    #[arg(short = 'f', long = "source-file", default_value_t = String::from("main.c"))] // provide default
+    source_file: String,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     
     // let project_root = Path::new("../my_c_project");
-    let project_root: PathBuf = PathBuf::from(&args.path);
+    let project_root: PathBuf = match args.path {
+        // Case 1: user provided path
+        Some(p) => PathBuf::from(p),
+
+        // Case 2: No path provided; use CWD
+        None => env::current_dir()?,
+    };
     
-    let test_repo_path = project_root.join(&args.dependency_file);
+    let test_repo_path = project_root.join(&args.source_file);
+
+    println!("\n[DEBUG] Checking absolute path: {:?}", test_repo_path.canonicalize());
+    println!("[DEBUG] Current working directory: {:?}", std::env::current_dir());
     
     if !test_repo_path.exists() {
-        println!("This file doesn't exist!");
+        println!(
+            "Error: Source file not found. Could not find {:#?} in project root.",
+            test_repo_path
+        );
+        return Ok(());
 
         } else {
         println!("This file exists!");
@@ -52,14 +66,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("\nFound the following dependencies to check:\n{:#?}", dependencies);
 
         for line in dependencies {
-            let full_path = project_root.join(line);
+            let full_path = project_root.join(&line);
 
             if full_path.exists() {
                 println!("Exists: {:#?}", full_path);
                 
             } else {
 
-                println!("Mssing (ENOENT): {:#?}", full_path);
+                println!("Mssing dependency: {:#?}", line);
             }
             
         }
