@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // let project_root = Path::new("../my_c_project");
     let project_root: PathBuf = PathBuf::from(&args.path);
     
-    let test_repo_path = project_root.join("dependencies.txt");
+    let test_repo_path = project_root.join("main.c");
     
     if !test_repo_path.exists() {
         println!("This file doesn't exist!");
@@ -28,11 +28,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         
         let content = fs::read_to_string(test_repo_path)?;
         
-        let lines: Vec<&str> = content.lines().collect();
+        let dependencies: Vec<String> = content.lines()
+            
+        // 1. Filter: Keep only lines that start with "#include"
+        .filter(|line| line.starts_with("#include"))
+        
+        // 2. Map: For each line, extract the filename (e.g., "dep.h")
+        .map(|line| {
+            
+            let dependency_part = line.trim_start_matches("#include").trim();
 
-        println!("\nFound the following dependencies to check:\n{:#?}", lines);
+            dependency_part.trim_matches('"')
+        })
+        
+        // 3. Collect: Gather the results into a vector
+        .map(|s| s.to_string())
+        .collect();
 
-        for line in lines {
+        println!("\nFound the following dependencies to check:\n{:#?}", dependencies);
+
+        for line in dependencies {
             let full_path = project_root.join(line);
 
             if full_path.exists() {
