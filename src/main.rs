@@ -12,7 +12,7 @@ struct Args {
     path: String,
 
     /// The name of the file containing the dependencies
-    #[arg(long, default_value_t = String::from("main.c"))] // provide default
+    #[arg(short = 'f', long = "dependency-file", default_value_t = String::from("main.c"))] // provide default
     dependency_file: String,
 }
 
