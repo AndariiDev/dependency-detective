@@ -10,6 +10,10 @@ struct Args {
     /// The root directory of the project to scan
     #[arg(short, long)]
     path: String,
+
+    /// The name of the file containing the dependencies
+    #[arg(long, default_value_t = String::from("main.c"))] // provide default
+    dependency_file: String,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -18,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // let project_root = Path::new("../my_c_project");
     let project_root: PathBuf = PathBuf::from(&args.path);
     
-    let test_repo_path = project_root.join("main.c");
+    let test_repo_path = project_root.join(&args.dependency_file);
     
     if !test_repo_path.exists() {
         println!("This file doesn't exist!");
