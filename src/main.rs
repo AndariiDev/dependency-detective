@@ -4,7 +4,7 @@ use std::error::Error;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(author = "AndariiDev", version = "0.1.2", about = "A dependency checker", long_about = None)] // strings must be quoted
+#[command(author = "AndariiDev", version = "0.1.3", about = "A dependency checker", long_about = None)] // strings must be quoted
 struct Args {
     // triple slashes are doc comments
     /// The root directory of the project to scan
