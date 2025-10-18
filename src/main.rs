@@ -31,9 +31,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let test_repo_path = project_root.join(&args.source_file);
 
-    println!("\n[DEBUG] Checking absolute path: {:?}", test_repo_path.canonicalize());
-    println!("[DEBUG] Current working directory: {:?}", std::env::current_dir());
-    
     if !test_repo_path.exists() {
         println!(
             "Error: Source file not found. Could not find {:#?} in project root.",
@@ -42,8 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
 
         } else {
-        println!("This file exists!");
-        
+
         let content = fs::read_to_string(test_repo_path)?;
         
         let dependencies: Vec<String> = content.lines()
@@ -73,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 
             } else {
 
-                println!("Mssing dependency: {:#?}", line);
+                println!("Mssing dependency: {}", line);
             }
             
         }
