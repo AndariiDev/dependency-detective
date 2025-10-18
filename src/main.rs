@@ -36,7 +36,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             "Error: Source file not found. Could not find {:#?} in project root.",
             test_repo_path
         );
-        return Ok(());
 
         } else {
 
