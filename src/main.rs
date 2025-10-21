@@ -2,6 +2,7 @@ use clap::Parser;
 use owo_colors::OwoColorize;
 use std::env;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -31,7 +32,6 @@ enum DetectiveError {
 fn main() -> Result<(), DetectiveError> {
     let args = Args::parse();
 
-    // let project_root = Path::new("../my_c_project");
     let dir_path: PathBuf = match args.path {
         // Case 1: user provided path
         Some(p) => PathBuf::from(p),
@@ -40,12 +40,16 @@ fn main() -> Result<(), DetectiveError> {
         None => env::current_dir()?,
     };
 
+    if !dir_path.exists() {
+        return Err(DetectiveError::SourceFileNotFound(dir_path));
+    }
+
     scan_directory(&dir_path, &args.source_file)?;
 
     Ok(())
 }
 
-fn scan_directory(dir_path: &PathBuf, source_filename: &str) -> Result<(), DetectiveError> {
+fn scan_directory(dir_path: &Path, source_filename: &str) -> Result<(), DetectiveError> {
     // 1. Start the loop to process all entries in the directory
     for entry in fs::read_dir(dir_path)? {
         let entry = entry?;
