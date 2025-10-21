@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     // let project_root = Path::new("../my_c_project");
-    let project_root: PathBuf = match args.path {
+    let dir_path: PathBuf = match args.path {
         // Case 1: user provided path
         Some(p) => PathBuf::from(p),
 
@@ -31,48 +31,67 @@ fn main() -> Result<(), Box<dyn Error>> {
         None => env::current_dir()?,
     };
 
-    let test_repo_path = project_root.join(&args.source_file);
+    scan_directory(&dir_path, &args.source_file)?;
 
-    if !test_repo_path.exists() {
-        println!(
-            "Error: Source file not found. Could not find {:#?} in project root.",
-            test_repo_path
-        );
+    Ok(())
+}
 
-        return Ok(());
-    }
-    // } else {
-    let content = fs::read_to_string(test_repo_path)?;
+fn scan_directory(dir_path: &PathBuf, source_filename: &str) -> Result<(), Box<dyn Error>> {
+    // 1. Start the loop to process all entries in the directory
+    for entry in fs::read_dir(dir_path)? {
+        let entry = entry?;
+        let path = entry.path(); // Full path to the current item
 
-    let dependencies: Vec<String> = content
-        .lines()
-        // 1. Filter: Keep only lines that start with "#include"
-        .filter(|line| line.starts_with("#include"))
-        // 2. Map: For each line, extract the filename (e.g., "dep.h")
-        .map(|line| {
-            let dependency_part = line.trim_start_matches("#include").trim();
+        // 2. Check if the item is a directory
+        if path.is_dir() {
+            // if dir, call function itself (recursively)
+            // skip hidden directories
+            if path
+                .file_name()
+                .map_or(false, |name| name.to_string_lossy().starts_with("."))
+            {
+                continue;
+            }
+            // Recursive step
+            scan_directory(&path, source_filename)?;
+        }
+        // 3. Check if the item is the specific source file we want to scan
+        else if path
+            .file_name()
+            .map_or(false, |name| name == source_filename)
+        {
+            // If its source file, execute checking logic
+            let content = fs::read_to_string(path)?;
 
-            dependency_part.trim_matches('"')
-        })
-        // 3. Collect: Gather the results into a vector
-        .map(|s| s.to_string())
-        .collect();
+            let dependencies: Vec<String> = content
+                .lines()
+                // 1. Filter: Keep only lines that start with "#include"
+                .filter(|line| line.starts_with("#include"))
+                // 2. Map: For each line, extract the filename (e.g., "dep.h")
+                .map(|line| {
+                    let dependency_part = line.trim_start_matches("#include").trim();
+                    dependency_part.trim_matches('"')
+                })
+                // 3. Collect: Gather the results into a vector
+                .map(|s| s.to_string())
+                .collect();
 
-    println!(
-        "\nFound the following dependencies to check:\n{:#?}",
-        dependencies
-    );
+            println!(
+                "\nFound the following dependencies to check:\n{:#?}",
+                dependencies
+            );
 
-    for line in dependencies {
-        let full_path = project_root.join(&line);
+            for line in dependencies {
+                let full_path = dir_path.join(&line);
 
-        if full_path.exists() {
-            println!("Exists: {}", line.green());
-        } else {
-            println!("Missing dependency: {}", line.red().bold());
+                if full_path.exists() {
+                    println!("Exists: {}", line.green());
+                } else {
+                    println!("Missing dependency: {}", line.red().bold());
+                }
+            }
         }
     }
-
     Ok(())
 }
 
