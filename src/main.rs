@@ -49,6 +49,7 @@ fn main() -> Result<(), DetectiveError> {
     Ok(())
 }
 
+// TODO: implement fallback: Check 1 local/relative, check 2 global/project_root
 fn scan_directory(dir_path: &Path, source_filename: &str) -> Result<(), DetectiveError> {
     // 1. Start the loop to process all entries in the directory
     for entry in fs::read_dir(dir_path)? {
