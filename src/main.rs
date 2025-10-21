@@ -1,12 +1,12 @@
 use clap::Parser;
 use owo_colors::OwoColorize;
 use std::env;
-use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
+use thiserror::Error;
 
 #[derive(Parser, Debug)]
-#[command(author = "AndariiDev", version = "0.1.3", about = "A dependency checker", long_about = None)] // strings must be quoted
+#[command(author = "AndariiDev", version = "0.2.0", about = "A dependency checker", long_about = None)] // strings must be quoted
 struct Args {
     // triple slashes are doc comments
     /// The root directory of the project to scan
@@ -19,7 +19,16 @@ struct Args {
     source_file: String,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[derive(Error, Debug)]
+enum DetectiveError {
+    #[error("Source file not found at: {0}")]
+    SourceFileNotFound(PathBuf),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+}
+
+fn main() -> Result<(), DetectiveError> {
     let args = Args::parse();
 
     // let project_root = Path::new("../my_c_project");
@@ -36,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn scan_directory(dir_path: &PathBuf, source_filename: &str) -> Result<(), Box<dyn Error>> {
+fn scan_directory(dir_path: &PathBuf, source_filename: &str) -> Result<(), DetectiveError> {
     // 1. Start the loop to process all entries in the directory
     for entry in fs::read_dir(dir_path)? {
         let entry = entry?;
