@@ -129,19 +129,18 @@ mod tests {
 
     #[test]
 
-    fn success() {
+    fn test_recurse_scan_no_panic() -> Result<(), DetectiveError> {
         // ARRANGE: Set up smallest possible environment; only need root and a dep here
-        let project_root = Path::new("dummy_root");
-        let dependency_name = "missing_file.h";
+        let global_root = Path::new(".");
+        let current_dir = Path::new(".");
+        let source_file = "test_file.c";
 
-        // ACT: now execute logic to test (path joining)
-        let full_path = project_root.join(dependency_name);
+        // ACT & ASSERT: Call the function and use the '?' operator
+        // This tests that the function runs to completion without panicking on I/O operations
+        // (even though the directories don't exist yet, it tests the function's structural integrity)
+        scan_directory(global_root, current_dir, source_file)?;
 
-        // ASSERT: Check expected outcome
-        // 1. check PathBuf was constructed correctly (optional, but for learning purposes)
-        assert_eq!(full_path.to_string_lossy(), "dummy_root/missing_file.h");
-
-        // 2. crucially, we haven't created the file, so it must not exist
-        assert!(!full_path.exists(), "Test failed: Path should not exist");
+        // Test passed if no error was returned
+        Ok(())
     }
 }
