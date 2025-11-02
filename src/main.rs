@@ -32,7 +32,7 @@ enum DetectiveError {
 fn main() -> Result<(), DetectiveError> {
     let args = Args::parse();
 
-    let dir_path: PathBuf = match args.path {
+    let project_root: PathBuf = match args.path {
         // Case 1: user provided path
         Some(p) => PathBuf::from(p),
 
@@ -40,19 +40,23 @@ fn main() -> Result<(), DetectiveError> {
         None => env::current_dir()?,
     };
 
-    if !dir_path.exists() {
-        return Err(DetectiveError::SourceFileNotFound(dir_path));
+    if !project_root.exists() {
+        return Err(DetectiveError::SourceFileNotFound(project_root));
     }
 
-    scan_directory(&dir_path, &args.source_file)?;
+    scan_directory(&project_root, &project_root, &args.source_file)?;
 
     Ok(())
 }
 
 // TODO: implement fallback: Check 1 local/relative, check 2 global/project_root
-fn scan_directory(dir_path: &Path, source_filename: &str) -> Result<(), DetectiveError> {
+fn scan_directory(
+    global_root: &Path,
+    current_dir: &Path,
+    source_filename: &str,
+) -> Result<(), DetectiveError> {
     // 1. Start the loop to process all entries in the directory
-    for entry in fs::read_dir(dir_path)? {
+    for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
         let path = entry.path(); // Full path to the current item
 
@@ -67,7 +71,7 @@ fn scan_directory(dir_path: &Path, source_filename: &str) -> Result<(), Detectiv
                 continue;
             }
             // Recursive step
-            scan_directory(&path, source_filename)?;
+            scan_directory(global_root, &path, source_filename)?;
         }
         // 3. Check if the item is the specific source file we want to scan
         else if path
@@ -96,11 +100,18 @@ fn scan_directory(dir_path: &Path, source_filename: &str) -> Result<(), Detectiv
             );
 
             for line in dependencies {
-                let full_path = dir_path.join(&line);
+                let local_path = current_dir.join(&line);
 
-                if full_path.exists() {
-                    println!("Exists: {}", line.green());
+                let global_path = global_root.join(&line);
+
+                if local_path.exists() {
+                    // Success, local path exists
+                    println!("Exists (local): {}", line.green());
+                } else if global_path.exists() {
+                    // Local failed, but global path exists: Success
+                    println!("Exists (global): {}", line.green());
                 } else {
+                    // Failure, neither exists
                     println!("Missing dependency: {}", line.red().bold());
                 }
             }
