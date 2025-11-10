@@ -1,10 +1,14 @@
 use clap::Parser;
 use owo_colors::OwoColorize;
+use serde::Deserialize;
+use serde::Serialize;
 use std::env;
+use std::fmt::DebugStruct;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
+use toml::de::Error as TomlDeserializeError;
 
 #[derive(Parser, Debug)]
 #[command(author = "AndariiDev", version = "0.2.0", about = "A dependency checker", long_about = None)] // strings must be quoted
@@ -20,6 +24,16 @@ struct Args {
     source_file: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct ParsingRules {
+    filenames: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Config {
+    rules: ParsingRules,
+}
+
 #[derive(Error, Debug)]
 enum DetectiveError {
     #[error("Source file not found at: {0}")]
@@ -27,6 +41,9 @@ enum DetectiveError {
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Toml(#[from] TomlDeserializeError),
 }
 
 fn main() -> Result<(), DetectiveError> {
@@ -128,7 +145,6 @@ mod tests {
     use std::path::Path;
 
     #[test]
-
     fn test_recurse_scan_no_panic() -> Result<(), DetectiveError> {
         // ARRANGE: Set up smallest possible environment; only need root and a dep here
         let global_root = Path::new(".");
@@ -141,6 +157,20 @@ mod tests {
         scan_directory(global_root, current_dir, source_file)?;
 
         // Test passed if no error was returned
+        Ok(())
+    }
+
+    #[test]
+    fn test_config_loading_fails_initially() -> Result<(), DetectiveError> {
+        let test_toml = r#"
+            [parsing_rules]
+            c_file = "main.c"
+            rust_file = "Cargo.toml"
+        "#;
+
+        // try to parse struct (not yet defined)
+        // let config: Config = toml::from_str(test_toml)?;
+
         Ok(())
     }
 }
