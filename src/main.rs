@@ -46,6 +46,15 @@ enum DetectiveError {
     Toml(#[from] TomlDeserializeError),
 }
 
+// Write out instead of deriving to adjust default behavior:
+impl Default for ParsingRules {
+    fn default() -> Self {
+        Self {
+            filenames: vec!["main.c".to_string()],
+        }
+    }
+}
+
 fn main() -> Result<(), DetectiveError> {
     let args = Args::parse();
 
