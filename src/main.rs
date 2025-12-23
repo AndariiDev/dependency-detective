@@ -162,14 +162,24 @@ mod tests {
 
     #[test]
     fn test_config_loading_fails_initially() -> Result<(), DetectiveError> {
+        // define
         let test_toml = r#"
-            [parsing_rules]
-            c_file = "main.c"
-            rust_file = "Cargo.toml"
+            [rules]
+            filenames = ["main.c", "Cargo.toml", "dep.h"]
         "#;
 
-        // try to parse struct (not yet defined)
-        // let config: Config = toml::from_str(test_toml)?;
+        // try to parse struct
+        // call struct
+        let config: Config = toml::from_str(test_toml)?;
+
+        // assert
+        assert_eq!(config.rules.filenames.len(), 3);
+
+        // act and assert
+        assert_eq!(
+            config.rules.filenames,
+            vec!["main.c", "Cargo.toml", "dep.h"]
+        );
 
         Ok(())
     }
