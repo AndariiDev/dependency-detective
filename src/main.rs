@@ -19,9 +19,9 @@ struct Args {
     path: Option<String>,
 
     /// The name of the file containing the dependencies (#include statements in C, etc)
-    #[arg(short = 'f', long = "source-file", default_value_t = String::from("main.c"))]
+    #[arg(short = 'f', long = "source-file")]
     // provide default
-    source_file: String,
+    source_file: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
