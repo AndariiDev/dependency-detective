@@ -2,8 +2,8 @@ use clap::Parser;
 use owo_colors::OwoColorize;
 use serde::Deserialize;
 use serde::Serialize;
+use std::default::Default;
 use std::env;
-use std::fmt::DebugStruct;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -29,7 +29,7 @@ struct ParsingRules {
     filenames: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct Config {
     rules: ParsingRules,
 }
@@ -55,6 +55,20 @@ impl Default for ParsingRules {
     }
 }
 
+impl Config {
+    pub fn load(root: &Path) -> Result<Self, DetectiveError> {
+        let config_path = root.join("detective.toml");
+
+        if config_path.exists() {
+            let content = fs::read_to_string(config_path)?; // Read file
+            let parsed_config: Config = toml::from_str(&content)?; // Parse string
+            Ok(parsed_config)
+        } else {
+            Ok(Config::default())
+        }
+    }
+}
+
 fn main() -> Result<(), DetectiveError> {
     let args = Args::parse();
 
@@ -70,7 +84,17 @@ fn main() -> Result<(), DetectiveError> {
         return Err(DetectiveError::SourceFileNotFound(project_root));
     }
 
-    scan_directory(&project_root, &project_root, &args.source_file)?;
+    let config = Config::load(&project_root)?;
+
+    let target_files = if let Some(cli_file) = args.source_file {
+        // if user typed -f, use only that one
+        vec![cli_file]
+    } else {
+        // otherwise, use list from config or default main.c
+        config.rules.filenames
+    };
+
+    scan_directory(&project_root, &project_root, &target_files)?;
 
     Ok(())
 }
@@ -79,7 +103,7 @@ fn main() -> Result<(), DetectiveError> {
 fn scan_directory(
     global_root: &Path,
     current_dir: &Path,
-    source_filename: &str,
+    filenames: &[String],
 ) -> Result<(), DetectiveError> {
     // 1. Start the loop to process all entries in the directory
     for entry in fs::read_dir(current_dir)? {
@@ -97,13 +121,12 @@ fn scan_directory(
                 continue;
             }
             // Recursive step
-            scan_directory(global_root, &path, source_filename)?;
+            scan_directory(global_root, &path, filenames)?;
         }
         // 3. Check if the item is the specific source file we want to scan
-        else if path
-            .file_name()
-            .map_or(false, |name| name == source_filename)
-        {
+        else if path.file_name().map_or(false, |name| {
+            filenames.contains(&name.to_string_lossy().into_owned())
+        }) {
             // If its source file, execute checking logic
             let content = fs::read_to_string(path)?;
 
@@ -158,12 +181,12 @@ mod tests {
         // ARRANGE: Set up smallest possible environment; only need root and a dep here
         let global_root = Path::new(".");
         let current_dir = Path::new(".");
-        let source_file = "test_file.c";
+        let filenames = vec!["test_file.c".to_string()];
 
         // ACT & ASSERT: Call the function and use the '?' operator
         // This tests that the function runs to completion without panicking on I/O operations
         // (even though the directories don't exist yet, it tests the function's structural integrity)
-        scan_directory(global_root, current_dir, source_file)?;
+        scan_directory(global_root, current_dir, &filenames)?;
 
         // Test passed if no error was returned
         Ok(())
