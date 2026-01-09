@@ -31,7 +31,7 @@ struct ParsingRules {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct Config {
-    rules: ParsingRules,
+    rules: Option<ParsingRules>,
 }
 
 #[derive(Error, Debug)]
@@ -90,8 +90,16 @@ fn main() -> Result<(), DetectiveError> {
         // if user typed -f, use only that one
         vec![cli_file]
     } else {
-        // otherwise, use list from config or default main.c
-        config.rules.filenames
+        if let Some(actual_rules) = config.rules {
+            actual_rules.filenames
+        } else {
+            println!(
+                "{}",
+                "Warning: Config file found but no [rules] section defined. Using defaults."
+                    .yellow()
+            );
+            ParsingRules::default().filenames
+        }
     };
 
     scan_directory(&project_root, &project_root, &target_files)?;
@@ -204,14 +212,12 @@ mod tests {
         // call struct
         let config: Config = toml::from_str(test_toml)?;
 
-        // assert
-        assert_eq!(config.rules.filenames.len(), 3);
-
-        // act and assert
-        assert_eq!(
-            config.rules.filenames,
-            vec!["main.c", "Cargo.toml", "dep.h"]
-        );
+        if let Some(r) = config.rules {
+            assert_eq!(r.filenames.len(), 3);
+            assert_eq!(r.filenames, vec!["main.c", "Cargo.toml", "dep.h"]);
+        } else {
+            panic!("Config rules should have been Some, but were None!");
+        }
 
         Ok(())
     }
