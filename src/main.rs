@@ -1,7 +1,5 @@
 use clap::Parser;
 use owo_colors::OwoColorize;
-use serde::Deserialize;
-use serde::Serialize;
 use std::default::Default;
 use std::env;
 use std::fs;
@@ -9,6 +7,8 @@ use std::path::Path;
 use std::path::PathBuf;
 use thiserror::Error;
 use toml::de::Error as TomlDeserializeError;
+mod config;
+use crate::config::Config;
 
 #[derive(Parser, Debug)]
 #[command(author = "AndariiDev", version = "0.2.0", about = "A dependency checker", long_about = None)] // strings must be quoted
@@ -24,16 +24,6 @@ struct Args {
     source_file: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ParsingRules {
-    filenames: Vec<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default)]
-struct Config {
-    rules: Option<ParsingRules>,
-}
-
 #[derive(Error, Debug)]
 enum DetectiveError {
     #[error("Source file not found at: {0}")]
@@ -44,29 +34,6 @@ enum DetectiveError {
 
     #[error(transparent)]
     Toml(#[from] TomlDeserializeError),
-}
-
-// Write out instead of deriving to adjust default behavior:
-impl Default for ParsingRules {
-    fn default() -> Self {
-        Self {
-            filenames: vec!["main.c".to_string()],
-        }
-    }
-}
-
-impl Config {
-    pub fn load(root: &Path) -> Result<Self, DetectiveError> {
-        let config_path = root.join("detective.toml");
-
-        if config_path.exists() {
-            let content = fs::read_to_string(config_path)?; // Read file
-            let parsed_config: Config = toml::from_str(&content)?; // Parse string
-            Ok(parsed_config)
-        } else {
-            Ok(Config::default())
-        }
-    }
 }
 
 fn main() -> Result<(), DetectiveError> {
@@ -98,7 +65,7 @@ fn main() -> Result<(), DetectiveError> {
                 "Warning: Config file found but no [rules] section defined. Using defaults."
                     .yellow()
             );
-            ParsingRules::default().filenames
+            crate::config::ParsingRules::default().filenames
         }
     };
 
